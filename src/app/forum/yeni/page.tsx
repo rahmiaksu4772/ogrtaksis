@@ -64,14 +64,14 @@ function NewPostPageContent() {
     };
     
     const postData = { ...values, author };
-    const newPostId = await addPost(postData);
+    const success = await addPost(postData);
 
-    if (newPostId) {
+    if (success) {
         toast({
         title: 'Sorunuz Gönderildi!',
-        description: 'Sorunuz foruma eklendi ve şimdi sizi gönderi sayfasına yönlendiriyoruz.',
+        description: 'Sorunuz foruma eklendi ve yakında meslektaşlarınız tarafından yanıtlanacaktır.',
         });
-        router.push(`/forum/soru/${newPostId}`);
+        router.push('/forum');
     } else {
         toast({
             title: 'Hata!',
