@@ -32,7 +32,7 @@ const categories = ['Matematik', 'Türkçe', 'Fen Bilimleri', 'Sosyal Bilgiler',
 
 const formSchema = z.object({
   title: z.string().min(10, { message: 'Başlık en az 10 karakter olmalıdır.' }).max(150, { message: 'Başlık en fazla 150 karakter olabilir.' }),
-  description: z.string().max(2000, { message: 'Açıklama en fazla 2000 karakter olabilir.' }).optional(),
+  description: z.string().max(10000, { message: 'Açıklama en fazla 10000 karakter olabilir.' }).optional(),
   category: z.string({ required_error: 'Lütfen bir kategori seçin.' }),
 });
 
@@ -64,14 +64,14 @@ function NewPostPageContent() {
     };
     
     const postData = { ...values, author };
-    const success = await addPost(postData);
+    const newPostId = await addPost(postData);
 
-    if (success) {
+    if (newPostId) {
         toast({
         title: 'Sorunuz Gönderildi!',
-        description: 'Sorunuz foruma eklendi ve yakında meslektaşlarınız tarafından yanıtlanacaktır.',
+        description: 'Sorunuz foruma eklendi ve şimdi sizi gönderi sayfasına yönlendiriyoruz.',
         });
-        router.push('/forum');
+        router.push(`/forum/soru/${newPostId}`);
     } else {
         toast({
             title: 'Hata!',

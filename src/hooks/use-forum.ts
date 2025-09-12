@@ -18,7 +18,6 @@ import {
     writeBatch,
     increment,
     deleteDoc,
-    collectionGroup,
 } from 'firebase/firestore';
 import { useToast } from './use-toast';
 import type { ForumPost, ForumReply, ForumComment, ForumAuthor } from '@/lib/types';
@@ -131,16 +130,16 @@ async function deleteSubcollection(collectionPath: string) {
 
 
 // Function to add a new post
-export const addPost = async (postData: Omit<ForumPost, 'id' | 'date'>) => {
+export const addPost = async (postData: Omit<ForumPost, 'id' | 'date'>): Promise<string | null> => {
     try {
-      await addDoc(collection(db, 'forum'), {
+      const docRef = await addDoc(collection(db, 'forum'), {
         ...postData,
         date: new Date().toISOString(), // Use client-side ISO string
       });
-      return true;
+      return docRef.id;
     } catch (error) {
       console.error("Error adding post:", error);
-      return false;
+      return null;
     }
 };
 
@@ -272,5 +271,3 @@ export const toggleUpvote = async (postId: string, replyId: string, userId: stri
         console.error("Error toggling upvote:", error);
     }
 }
-
-
