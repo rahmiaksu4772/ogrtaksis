@@ -76,7 +76,7 @@ Lütfen bu verileri analiz ederek aşağıdaki formatta bir rapor oluştur:
     },
     async (input) => {
       const { output } = await prompt(input);
-      return output ?? { classOverview: "", commonStrengths: "", commonChallenges: "", outstandingStudents: "", studentsNeedingSupport: "", generalRecommendations: "" };
+      return output!;
     }
   );
 

@@ -24,7 +24,7 @@ export type IndividualStudentReportInput = z.infer<typeof IndividualStudentRepor
 const IndividualStudentReportOutputSchema = z.object({
     generalEvaluation: z.string().describe("Öğrencinin genel durumu, derse katılımı ve davranışları hakkında 2-3 cümlelik bir özet."),
     strengths: z.string().describe("Öğrencinin aldığı artılar ve öğretmen notlarına dayanarak belirlenen güçlü yönleri ve olumlu davranışları."),
-    areasForImprovement: z.string().describe("Öğredoc.addFont('Roboto-Regular-normal.ttf', 'PT Sans', 'normal');ncinin aldığı eksiler ve öğretmen notlarına dayanarak belirlenen, yapıcı bir dille ifade edilmiş geliştirilmesi gereken yönleri."),
+    areasForImprovement: z.string().describe("Öğrencinin aldığı eksiler ve öğretmen notlarına dayanarak belirlenen, yapıcı bir dille ifade edilmiş geliştirilmesi gereken yönleri."),
     recommendations: z.string().describe("Öğrencinin gelişimini desteklemek amacıyla öğretmene, veliye veya öğrencinin kendisine yönelik 2-3 adet somut ve uygulanabilir eylem önerisi."),
 });
 export type IndividualStudentReportOutput = z.infer<typeof IndividualStudentReportOutputSchema>;
@@ -64,7 +64,7 @@ Lütfen bu verileri analiz ederek aşağıdaki formatta bir rapor oluştur:
     },
     async (input) => {
       const { output } = await prompt(input);
-      return output ?? { generalEvaluation: "", strengths: "", areasForImprovement: "", recommendations: "" };
+      return output!;
     }
   );
 
