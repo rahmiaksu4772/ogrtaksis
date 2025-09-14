@@ -57,7 +57,7 @@ export default function DersProgrami() {
 
   const [viewingPlanContent, setViewingPlanContent] = React.useState<LessonPlanEntry[] | null>(null);
   const [viewingPlanTitle, setViewingPlanTitle] = React.useState<string>('');
-  const [currentWeekNumber, setCurrentWeekNumber] = React.useState<number>(1);
+  const [startWeekForPlan, setStartWeekForPlan] = React.useState<number>(1);
 
   const clickTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
@@ -74,8 +74,6 @@ export default function DersProgrami() {
     if (adjustedIndex >= 0 && adjustedIndex < dayOrder.length) {
         setSelectedDay(dayOrder[adjustedIndex]);
     }
-    // Set the current week number when the component mounts
-    setCurrentWeekNumber(getWeek(new Date(), { weekStartsOn: 1 }));
   }, []);
 
   const openEditLessonModal = (day: Day, lessonSlot: number, lesson: Lesson | null) => {
@@ -99,7 +97,7 @@ export default function DersProgrami() {
         }
     }
 
-  const viewFile = async (plan: Plan) => {
+  const viewFile = async (plan: Plan, lesson: Lesson) => {
     setViewingPlanTitle(plan.title);
     
     const blob = dataURIToBlob(plan.fileDataUrl);
@@ -123,12 +121,14 @@ export default function DersProgrami() {
                 ...row
             } as LessonPlanEntry));
 
+            setStartWeekForPlan(1);
             setViewingPlanContent(planEntries);
         } catch(e) {
              console.error("Error parsing excel file: ", e);
              toast({ title: 'Hata', description: 'Excel dosyası işlenirken bir hata oluştu.', variant: 'destructive' });
              setViewingPlanTitle('');
         }
+
     } else {
       // For other file types like PDF/Word, just show a message or download. For now, modal won't open.
       toast({ title: 'Plan Görüntülenemiyor', description: 'Bu plan türü için uygulama içi görüntüleyici mevcut değil. Planlarim sayfasından indirebilirsiniz.' });
@@ -236,7 +236,7 @@ export default function DersProgrami() {
         if (lesson) {
           const relatedPlan = findRelatedPlan(lesson);
           if (relatedPlan) {
-            viewFile(relatedPlan);
+            viewFile(relatedPlan, lesson);
           } else {
             toast({
               title: 'Yıllık Plan Bulunamadı',
@@ -421,7 +421,7 @@ export default function DersProgrami() {
               onClear={handleClearLesson}
               timeSlot={`${settings.timeSlots[editingLesson.lessonSlot]} - ${calculateEndTime(settings.timeSlots[editingLesson.lessonSlot], settings.lessonDuration)}` || ''}
               relatedPlan={findRelatedPlan(editingLesson.lesson)}
-              onViewPlan={viewFile}
+              onViewPlan={(plan) => viewFile(plan, editingLesson.lesson!)}
               availablePlans={plans.filter(p => p.type === 'annual')}
           />
       )}
@@ -430,7 +430,7 @@ export default function DersProgrami() {
             onClose={closeViewer}
             title={viewingPlanTitle}
             entries={viewingPlanContent || []}
-            startWeek={currentWeekNumber}
+            startWeek={startWeekForPlan}
         />
     </div>
   );
