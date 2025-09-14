@@ -140,16 +140,12 @@ export default function DersProgrami() {
     setViewingPlanTitle('');
   }
 
-  const handleLessonSave = async (day: Day, lessonSlot: number, lessonData: Omit<Lesson, 'id'|'lessonSlot'>) => {
+  const handleLessonSave = async (day: Day, lessonData: Omit<Lesson, 'id'|'lessonSlot'>, lessonSlot: number) => {
     if (!user) return;
-    const lessonToSave: Lesson = {
-        id: editingLesson?.lesson?.id || `${day}-${lessonSlot}-${new Date().getTime()}`,
-        lessonSlot: lessonSlot,
-        ...lessonData,
-        time: settings.timeSlots[lessonSlot] || ''
-    };
     
-    await updateLesson(day, lessonToSave);
+    // Pass the full data object from the form to the update function
+    await updateLesson(day, lessonData, lessonSlot);
+
     toast({ title: "Ders Kaydedildi!", description: `${lessonData.subject} dersi programa eklendi.` });
     setEditingLesson(null);
   };
@@ -238,11 +234,8 @@ export default function DersProgrami() {
           if (relatedPlan) {
             viewFile(relatedPlan, lesson);
           } else {
-            toast({
-              title: 'Yıllık Plan Bulunamadı',
-              description: 'Bu ders için bir yıllık plan yüklenmemiş veya atanmamış.',
-              variant: 'default',
-            });
+            // If no plan, open edit modal on single click as well
+            openEditLessonModal(day, slotIndex, lesson);
           }
         } else {
           // If the slot is empty, open edit modal on single click
