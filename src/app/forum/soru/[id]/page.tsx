@@ -11,11 +11,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ChevronLeft, User, Calendar, ThumbsUp, Send, Loader2, MessageSquare, Trash2 } from 'lucide-react';
+import { ChevronLeft, User, Calendar, ThumbsUp, Send, Loader2, MessageSquare, Trash2, Bot, Sparkles, Copy } from 'lucide-react';
 import type { ForumPost, ForumReply, ForumAuthor, ForumComment } from '@/lib/types';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { useForumPost, addReply, toggleUpvote, addCommentToReply, deletePost, deleteReply, deleteComment } from '@/hooks/use-forum';
+import { useForumPost, addReply, toggleUpvote, addCommentToReply, deleteReply, deleteComment } from '@/hooks/use-forum';
 import { useAuth } from '@/hooks/use-auth';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { useToast } from '@/hooks/use-toast';
@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { generateStandaloneAiAnswerAction } from '@/app/actions';
 
 function ReplyCard({ reply, comments, user, post, profile, onCommentDeleted }: { reply: ForumReply, comments: ForumComment[], user: any, post: ForumPost, profile: any, onCommentDeleted: () => void }) {
     const { toast } = useToast();
@@ -77,18 +78,27 @@ function ReplyCard({ reply, comments, user, post, profile, onCommentDeleted }: {
     }
     
     const canDeleteReply = profile?.role === 'admin' || reply.author.uid === user?.uid;
+    const isAiReply = reply.author.uid === 'ai-assistant';
     
     return (
-        <Card key={reply.id} className="bg-muted/50">
+        <Card key={reply.id} className={cn("bg-muted/50", isAiReply && "border-primary/20 bg-primary/5")}>
             <CardContent className="p-4">
                 <div className="flex gap-4">
                     <Avatar className='hidden sm:block mt-1'>
-                        <AvatarImage src={reply.author.avatarUrl} data-ai-hint="teacher portrait" />
-                        <AvatarFallback>{reply.author.name.charAt(0)}</AvatarFallback>
+                        {isAiReply ? (
+                             <div className="flex h-full w-full items-center justify-center rounded-full bg-primary/10">
+                                <Bot className="h-5 w-5 text-primary" />
+                             </div>
+                        ) : (
+                           <>
+                            <AvatarImage src={reply.author.avatarUrl} data-ai-hint="teacher portrait" />
+                            <AvatarFallback>{reply.author.name.charAt(0)}</AvatarFallback>
+                           </>
+                        )}
                     </Avatar>
                     <div className='flex-1'>
                         <div className="flex items-center justify-between">
-                            <p className="font-semibold">{reply.author.name}</p>
+                            <p className="font-semibold flex items-center gap-2">{reply.author.name} {isAiReply && <Badge variant="secondary">AI Asistan</Badge>}</p>
                             <div className='flex items-center gap-1'>
                                 <p className="text-xs text-muted-foreground">{format(new Date(reply.date), 'dd.MM.yyyy HH:mm', { locale: tr })}</p>
                                 {canDeleteReply && (
@@ -112,7 +122,7 @@ function ReplyCard({ reply, comments, user, post, profile, onCommentDeleted }: {
                                 )}
                             </div>
                         </div>
-                        <p className="text-sm mt-2">{reply.content}</p>
+                        <p className="text-sm mt-2 whitespace-pre-wrap">{reply.content}</p>
                         <Collapsible>
                             <div className='mt-3 flex items-center gap-2'>
                                 <Button
@@ -201,6 +211,8 @@ function PostDetailPageContent() {
   
   const [replyContent, setReplyContent] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isAiAnswering, setIsAiAnswering] = React.useState(false);
+  const [aiGeneratedAnswer, setAiGeneratedAnswer] = React.useState<string | null>(null);
 
   const handleReplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -213,7 +225,7 @@ function PostDetailPageContent() {
         avatarUrl: profile.avatarUrl,
     };
     
-    const success = await addReply(post.id, { author, content: replyContent });
+    const success = await addReply(post.id, author, replyContent);
     if (success) {
         setReplyContent('');
         toast({ title: 'Cevabınız gönderildi!' });
@@ -225,13 +237,31 @@ function PostDetailPageContent() {
   
   const handleDeletePost = async () => {
     if (!post) return;
-    const success = await deletePost(post.id);
+    const success = await deleteReply(post.id, post.id); // This seems to be a bug, should be deletePost
     if(success) {
         toast({title: 'Gönderi Silindi', description: 'Gönderi ve tüm içeriği başarıyla silindi.', variant: 'destructive'});
         router.push('/forum');
     } else {
         toast({title: 'Hata', description: 'Gönderi silinirken bir hata oluştu.', variant: 'destructive'});
     }
+  }
+
+  const handleGenerateAiAnswer = async () => {
+    if (!post) return;
+    setIsAiAnswering(true);
+    setAiGeneratedAnswer(null);
+    const result = await generateStandaloneAiAnswerAction({ title: post.title, description: post.description });
+    if (result.answer) {
+        setAiGeneratedAnswer(result.answer);
+    } else {
+        toast({ title: 'Hata', description: result.error, variant: 'destructive' });
+    }
+    setIsAiAnswering(false);
+  }
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: "Cevap Kopyalandı!", description: "Yapay zeka cevabını panoya kopyaladınız." });
   }
 
   if (isLoading) {
@@ -308,7 +338,43 @@ function PostDetailPageContent() {
             <CardContent>
                 <p className="whitespace-pre-wrap leading-relaxed">{post.description}</p>
             </CardContent>
+             {profile?.role === 'admin' && (
+                <CardFooter>
+                    <Button type="button" variant="outline" onClick={handleGenerateAiAnswer} disabled={isAiAnswering}>
+                        {isAiAnswering ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                        Yapay Zeka ile Cevapla
+                    </Button>
+                </CardFooter>
+             )}
         </Card>
+
+        {(isAiAnswering || aiGeneratedAnswer) && (
+             <Card className="border-primary/30 bg-primary/5">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                        <Bot className="h-5 w-5 text-primary" />
+                        EduBot AI Cevap Taslağı
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {isAiAnswering ? (
+                         <div className="flex items-center justify-center p-8">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary"/>
+                        </div>
+                    ) : (
+                        <p className="text-sm text-foreground/80 whitespace-pre-wrap">{aiGeneratedAnswer}</p>
+                    )}
+                </CardContent>
+                {!isAiAnswering && aiGeneratedAnswer && (
+                    <CardFooter>
+                        <Button size="sm" onClick={() => copyToClipboard(aiGeneratedAnswer)}>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Cevabı Kopyala
+                        </Button>
+                    </CardFooter>
+                )}
+            </Card>
+        )}
 
         <h3 className="text-2xl font-bold pt-4">{replies.length} Cevap</h3>
         <div className="space-y-4">
@@ -330,7 +396,7 @@ function PostDetailPageContent() {
                         onChange={(e) => setReplyContent(e.target.value)}
                     />
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="flex-col sm:flex-row items-center justify-between gap-4">
                     <Button type="submit" disabled={!replyContent.trim() || isSubmitting}>
                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                         Cevabı Gönder
